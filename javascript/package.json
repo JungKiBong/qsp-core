@@ -1,0 +1,26 @@
+{
+  "name": "@mories/qsp-core",
+  "version": "1.0.0",
+  "description": "Quantum Semantic Protocol (QSP) Core Library for High-Density AI Agent Inter-process Communication and Memory Synchronization",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "keywords": [
+    "qsp",
+    "ai-agent",
+    "mories",
+    "claude-code",
+    "antigravity",
+    "ipc",
+    "token-optimization"
+  ],
+  "author": "JungKiBong",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
