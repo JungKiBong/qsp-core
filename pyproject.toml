@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qsp-core"
+version = "1.0.0"
+description = "Quantum Semantic Protocol (QSP) - A high-density symbolic communication protocol for LLM agents"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Kibong Jung", email = "JKBrown8408@gmail.com" }
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+    "msgpack>=1.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/JungKiBong/qsp-core"
+Bug-Tracker = "https://github.com/JungKiBong/qsp-core/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["qsp_core"]
