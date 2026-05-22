@@ -197,6 +197,94 @@ export class QspFrame {
       timestamp,
     });
   }
+
+  /**
+   * Converts the QspFrame into a Zero-Overhead Agent-to-Agent Lite DSL (QSP-Lite) string.
+   * Eliminates natural-language meta explanations and emotions.
+   */
+  public toLiteDsl(): string {
+    const stateMap: Record<string, number> = { success: 1, failure: 0, active: 2 };
+    const sevMap: Record<string, number> = { low: 0, medium: 1, critical: 2 };
+
+    const stateInt = stateMap[this.state] !== undefined ? stateMap[this.state] : 1;
+    const sevInt = sevMap[this.severity] !== undefined ? sevMap[this.severity] : 1;
+    const resolvesStr = this.resolves.join(',');
+    const mutationStr = `${this.targetObject}:${this.mutationFrom}->${this.mutationTo}`;
+
+    return `QL[a:${this.actor}|m:${mutationStr}|r:${resolvesStr}|s:${stateInt}|v:${sevInt}|t:${this.timestamp}]`;
+  }
+
+  /**
+   * Parses a Zero-Overhead QSP-Lite DSL string back into a structured QspFrame.
+   */
+  public static fromLiteDsl(liteStr: string): QspFrame {
+    try {
+      const trimmed = liteStr.trim();
+      const match = trimmed.match(/^QL\[(.*?)\]$/);
+      if (!match) {
+        throw new Error('Invalid QSP-Lite format, missing QL[...] envelope');
+      }
+
+      const inner = match[1];
+      const parts = inner.split('|');
+      const data: Record<string, string> = {};
+      for (const part of parts) {
+        if (part.includes(':')) {
+          const index = part.indexOf(':');
+          const k = part.substring(0, index);
+          const v = part.substring(index + 1);
+          data[k] = v;
+        }
+      }
+
+      const actor = data['a'] || 'unknown';
+
+      // Parse Mutation (m)
+      const mutVal = data['m'] || '';
+      let obj = 'unknown';
+      let mutationFrom = 'unknown';
+      let mutationTo = 'unknown';
+      if (mutVal.includes(':') && mutVal.includes('->')) {
+        const indexColon = mutVal.indexOf(':');
+        obj = mutVal.substring(0, indexColon);
+        const transition = mutVal.substring(indexColon + 1);
+        const [mFrom, mTo] = transition.split('->');
+        mutationFrom = mFrom.trim();
+        mutationTo = mTo.trim();
+      } else {
+        obj = mutVal || 'unknown';
+      }
+
+      const resolves = data['r'] ? data['r'].split(',').map((r) => r.trim()).filter(Boolean) : [];
+
+      // State
+      const stateInt = data['s'] ? parseInt(data['s'], 10) : 1;
+      const stateRevMap: Record<number, string> = { 1: 'success', 0: 'failure', 2: 'active' };
+      const state = stateRevMap[stateInt] || 'success';
+
+      // Severity
+      const sevInt = data['v'] ? parseInt(data['v'], 10) : 1;
+      const sevRevMap: Record<number, string> = { 0: 'low', 1: 'medium', 2: 'critical' };
+      const severity = sevRevMap[sevInt] || 'medium';
+
+      const timestamp = data['t'] ? parseInt(data['t'], 10) : Math.floor(Date.now() / 1000);
+
+      return new QspFrame({
+        actor,
+        targetObject: obj,
+        mutationFrom,
+        mutationTo,
+        resolves,
+        state,
+        severity,
+        emotions: {},
+        meta: null,
+        timestamp,
+      });
+    } catch (e) {
+      throw new Error(`Failed to parse QSP-Lite: ${(e as Error).message}`);
+    }
+  }
 }
 
 export class QspParser {
@@ -206,6 +294,10 @@ export class QspParser {
 
   public static parseDsl(dslStr: string): QspFrame {
     return QspFrame.fromHdDsl(dslStr);
+  }
+
+  public static parseLiteDsl(liteStr: string): QspFrame {
+    return QspFrame.fromLiteDsl(liteStr);
   }
 
   public static parseBef(binaryData: Buffer): QspFrame {

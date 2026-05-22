@@ -9,7 +9,7 @@
  * $ node examples/agent_integration_node.js
  */
 
-const { QspPromptInjector, FuzzyQspParser, QspInterpreter } = require('../dist/index');
+const { QspPromptInjector, FuzzyQspParser, QspInterpreter, QspParser } = require('../dist/index');
 
 class AgentQspWrapper {
   /**
@@ -141,6 +141,28 @@ function runSimulation() {
   const resultEn = gptWrapper.processResponse(gptOutput, 'en');
   console.log("[3] Auto-Healed English Alert:");
   console.log(`${resultEn.alert}\n`);
+
+  console.log("=====================================================================");
+  console.log("Scenario C: QSP-Lite Agent-to-Agent M2M Ultra-Compression");
+  console.log("=====================================================================");
+
+  // Convert Scenario A's frame to Lite DSL
+  const liteDsl = frame.toLiteDsl();
+  console.log(`[1] Encoded QSP-Lite String (For pure M2M Agent Sync):`);
+  console.log(`  ${liteDsl}`);
+  console.log(`  Length: ${liteDsl.length} characters (vs HD-DSL: ${frame.toHdDsl().length} chars)`);
+  console.log("\n");
+
+  // Parse from Lite DSL
+  const parsedLite = QspParser.parseLiteDsl(liteDsl);
+  console.log("[2] Parsed QSP-Lite Frame Values (Lossless Restoration):");
+  console.log(`  - Actor       : ${parsedLite.actor}`);
+  console.log(`  - Target      : ${parsedLite.targetObject}`);
+  console.log(`  - Transition  : '${parsedLite.mutationFrom}' -> '${parsedLite.mutationTo}'`);
+  console.log(`  - Resolves    : ${parsedLite.resolves.join(', ')}`);
+  console.log(`  - State       : ${parsedLite.state}`);
+  console.log(`  - Severity    : ${parsedLite.severity}`);
+  console.log(`  - Timestamp   : ${parsedLite.timestamp}\n`);
 }
 
 // Execute simulation

@@ -139,6 +139,79 @@ class QspFrame:
         except Exception as e:
             raise ValueError(f"Failed to parse HD-DSL: {e}")
 
+    def to_lite_dsl(self) -> str:
+        """
+        Converts the QspFrame into a Zero-Overhead Agent-to-Agent Lite DSL (QSP-Lite) string.
+        Eliminates natural-language meta explanations and emotions.
+        """
+        state_map = {"success": 1, "failure": 0, "active": 2}
+        sev_map = {"low": 0, "medium": 1, "critical": 2}
+        
+        state_int = state_map.get(self.state, 1)
+        sev_int = sev_map.get(self.severity, 1)
+        resolves_str = ",".join(self.resolves)
+        mutation_str = f"{self.target_object}:{self.mutation_from}->{self.mutation_to}"
+        
+        return f"QL[a:{self.actor}|m:{mutation_str}|r:{resolves_str}|s:{state_int}|v:{sev_int}|t:{self.timestamp}]"
+
+    @classmethod
+    def from_lite_dsl(cls, lite_str: str) -> "QspFrame":
+        """
+        Parses a Zero-Overhead QSP-Lite DSL string back into a structured QspFrame.
+        """
+        try:
+            match = re.match(r"^QL\[(.*?)\]$", lite_str.strip())
+            if not match:
+                raise ValueError("Invalid QSP-Lite format, missing QL[...] envelope")
+            
+            inner = match.group(1)
+            parts = inner.split("|")
+            data = {}
+            for part in parts:
+                if ":" in part:
+                    k, v = part.split(":", 1)
+                    data[k] = v
+            
+            actor = data.get("a", "unknown")
+            
+            # Parse Mutation (m)
+            mut_val = data.get("m", "")
+            obj = "unknown"
+            mutation_from = "unknown"
+            mutation_to = "unknown"
+            if ":" in mut_val and "->" in mut_val:
+                obj, transition = mut_val.split(":", 1)
+                mutation_from, mutation_to = transition.split("->", 1)
+            else:
+                obj = mut_val if mut_val else "unknown"
+                
+            resolves = data.get("r", "").split(",") if data.get("r") else []
+            
+            # State
+            state_int = int(data.get("s", "1"))
+            state_rev_map = {1: "success", 0: "failure", 2: "active"}
+            state = state_rev_map.get(state_int, "success")
+            
+            # Severity
+            sev_int = int(data.get("v", "1"))
+            sev_rev_map = {0: "low", 1: "medium", 2: "critical"}
+            severity = sev_rev_map.get(sev_int, "medium")
+            
+            timestamp = int(data.get("t", int(time.time())))
+            
+            return cls(
+                actor=actor,
+                target_object=obj,
+                mutation_from=mutation_from,
+                mutation_to=mutation_to,
+                resolves=resolves,
+                state=state,
+                severity=severity,
+                timestamp=timestamp
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to parse QSP-Lite: {e}")
+
     def to_bef(self) -> bytes:
         """
         Serializes the frame into Binary Episodic Frame (BEF) format using msgpack
@@ -234,6 +307,10 @@ class QspParser:
     @staticmethod
     def parse_dsl(dsl_str: str) -> QspFrame:
         return QspFrame.from_hd_dsl(dsl_str)
+
+    @staticmethod
+    def parse_lite_dsl(lite_str: str) -> QspFrame:
+        return QspFrame.from_lite_dsl(lite_str)
 
     @staticmethod
     def parse_bef(binary_data: bytes) -> QspFrame:
